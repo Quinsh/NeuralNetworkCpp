@@ -1,20 +1,20 @@
-github.com/AlDanial/cloc v 2.02  T=0.01 s (1203.2 files/s, 99867.0 lines/s)
+github.com/AlDanial/cloc v 2.02  T=0.01 s (1259.1 files/s, 129691.2 lines/s)
 ---------------------------------------------------------------------------------
 File                               blank        comment           code
 ---------------------------------------------------------------------------------
-./Layer.cpp                           34             17            177
-./NeuralNetwork.cpp                   21              9            140
-./NetDrawer.cpp                       20             13             95
-./utility.cpp                         13              3             70
-./main.cpp                            10              4             44
-./NeuralNetwork.h                      9              4             38
-./Layer.h                              9              3             36
-./Neuron.cpp                           7              3             30
-./utility.h                            7              3             25
-./Neuron.h                            12              3             22
+./NeuralNetwork.cpp                   28             15            208
+./Layer.cpp                           35              7            207
+./NetDrawer.cpp                       19             11            101
+./utility.cpp                         14              4             81
+./NeuralNetwork.h                     10              4             46
+./main.cpp                            13             68             44
+./Layer.h                              9              3             42
+./Neuron.cpp                           8              3             38
+./utility.h                            8              3             31
+./Neuron.h                            12              3             26
 ./NetDrawer.h                          9              3             20
 ---------------------------------------------------------------------------------
-SUM:                                 151             65            697
+SUM:                                 165            124            844
 ---------------------------------------------------------------------------------
 
-Lines: 913
+Lines: 1133

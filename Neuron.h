@@ -17,10 +17,13 @@ class Neuron {
 public:
     std::vector<double> weights;
     double bias;
+    double z; // before activation
     double a; // the output value
     double delta;
+    std::vector<double> weightGradient;
+    double biasGradient;
 
-    Neuron(): bias(0), a(0), delta(0) {
+    Neuron(): bias(0), z(0), a(0), delta(0), biasGradient(0) {
     };
 
     void deleteWeights();
@@ -29,6 +32,7 @@ public:
     double maxWeight() const;
     double getBias() const;
     void computeOutput(const Layer& prev_layer, const std::function<double(double)>&);
+    void gradientDescent(double eta);
 
 };
 

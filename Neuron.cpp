@@ -10,6 +10,7 @@ void Neuron::deleteWeights() {
 
 void Neuron::initWeights(std::vector<double>&& _weights) {
     weights = std::move(_weights);
+    weightGradient.resize(weights.size());
 }
 
 const std::vector<double> & Neuron::getWeightsReadOnly() const {
@@ -35,6 +36,14 @@ void Neuron::computeOutput(const Layer& prev_layer, const std::function<double(d
         _a += neuron.a * weights[i++];
     }
     _a += bias;
+    z = _a;
     _a = activation(_a);
     a = _a;
+}
+
+void Neuron::gradientDescent(double eta) {
+    for (int i=0; i<weights.size(); ++i) {
+        weights[i] -= (weightGradient[i] * eta);
+    }
+    bias -= biasGradient * eta;
 }

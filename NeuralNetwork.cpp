@@ -3,6 +3,7 @@
 //
 #include "NeuralNetwork.h"
 #include <thread>
+#include <unordered_set>
 
 const std::vector<Layer> & NeuralNetwork::getLayerReadOnly() const {
     return layers;
@@ -105,66 +106,146 @@ void NeuralNetwork::setLearningRate(const double &_eta) {
     eta = _eta;
 }
 
+void NeuralNetwork::clearAllDeltas() {
+    for (auto& layer : layers) {
+        layer.clearDeltas();
+    }
+}
+
+void NeuralNetwork::clearAllWeightBiasGradients() {
+    for (auto& layer : layers) {
+        layer.clearWeightGradients();
+        layer.clearBiasGradients();
+    }
+}
+
 void NeuralNetwork::fit(const std::vector<std::vector<double>> &X_train, const std::vector<std::vector<double>> &Y_train, int epoch, LossFxn loss_fxn = MSE, NetDrawer *drawer) {
     size_t sample_size = X_train.size();
     size_t inputlayer_size = X_train[0].size();
     size_t layer_size  = layers.size();
+    size_t batch_size = sample_size;
+    switch(gradient_descent_type) {
+        case SGD:
+            batch_size = 1;
+        break;
+        case MiniBatch:
+            batch_size = mini_batch_size;
+        break;
+        case Batch:
+            break;
+        default:
+            break;
+    }
+    std::vector<std::vector<double>> X_train_use(batch_size, std::vector<double>(inputlayer_size));
+    std::vector<std::vector<double>> Y_train_use(batch_size, std::vector<double>(Y_train[0].size()));
+
 
     auto _activationType = layers[0].getActivationType();
     adjustFirstLayer(static_cast<int>(inputlayer_size), _activationType); // change the shape of the first layer according to the input layer shape.
 
     // TODO: implement some automatic convergence using epsilon = 0.05
     for (int _=0; _<epoch; ++_) {
-
-        // comptute the cost
+        // comptute the cost and print
         double cost = cost_compute(X_train, Y_train, loss_fxn);
         std::cout << "Cost is: " << cost << std::endl;
 
-        // computing last layer delta
-        auto& lastLayer = layers[layer_size-1];
-        const auto& lastLayerNeuronsRO = lastLayer.getNeuronsReadOnly();
-        ActivationType activation = lastLayer.getActivationType();
-        double singleDelta = 0; // delta for one train sample
-        std::vector<double> delta; delta.resize(lastLayerNeuronsRO.size());
+        // logic for selecting the training set for each epoch (depending on if it's SDG, mini-batch, batch)
+        // by default, batch:
+        switch(gradient_descent_type) {
+            case SGD: // randomly select one
+                int randomIndex = randomNumber(0, sample_size-1);
+                X_train_use[0] = X_train[randomIndex];
+                Y_train_use[0] = Y_train[randomIndex];
+                break;
+            case MiniBatch: // randomly form a mini-batch
+                std::unordered_set<int> usedIndices;
+                for (int i=0; i<batch_size; ++i) {
+                    randomIndex = randomNumber(0, sample_size-1);
+                    if (usedIndices.find(randomIndex) == usedIndices.end()) {
+                        X_train_use[i] = X_train[randomIndex];
+                        Y_train_use[i] = Y_train[randomIndex];
+                        usedIndices.insert(randomIndex);
+                    }
+                    else {
+                        --i;
+                    }
+                }
+                break;
+            case Batch:
+                X_train_use = X_train;
+                Y_train_use = Y_train;
+                break;
+            default:
+                break;
+        }
 
-        for (int k=0; k<sample_size; ++k) {
-            forwardProp(X_train[k]);
-            for (int i=0; i<lastLayer.getNeuronCount(); ++i) {
-                singleDelta = 0;
-                singleDelta += activationFxnDerivative(activation, lastLayerNeuronsRO[i].a);
-                singleDelta *= lossFunctionDerivative(loss_fxn, lastLayerNeuronsRO[i].a, Y_train[k][i]);
-                delta[i] += singleDelta;
+        clearAllWeightBiasGradients();
+
+        // for all sample size, do backprop
+        for (int i=0; i<batch_size; ++i) {
+            // 1, forward prop
+            forwardProp(X_train_use[i]);
+            // 2. compute deltas and weights (averaged by doing sample_size)
+            // compute delta and gradients in the last layer
+            layers[layer_size-1].computeLastLayerDelta(Y_train_use[i], loss_fxn);
+            if (layer_size == 1)// last layer is first
+                layers[layer_size-1].computeWeightGradient(X_train_use[i], batch_size);
+            else
+                layers[layer_size-1].computeWeightGradient(layers[layer_size-2], batch_size);
+            // compute delta and weight gradients in further layers.
+            for (int l=layer_size-2; l>0; --l) {
+                layers[l].computeDelta(layers[l+1]);
+                layers[l].computeWeightGradient(layers[l-1], batch_size);
+            }
+            // compute delta and weight gradients in first layer
+            if (layer_size != 1) {
+                layers[0].computeDelta(layers[1]);
+                layers[0].computeWeightGradient(X_train_use[i], batch_size);
             }
         }
-        for (double & d : delta) {d /= static_cast<double>(sample_size);}
-        auto& lastLayerNeurons = lastLayer.getNeurons();
-        for (int i=0; i<delta.size(); ++i) {
-            lastLayerNeurons[i].delta = delta[i];
-        }
-        // compute weight gradient, and gradient descent for last layer
-        if (layer_size > 1) {
-            lastLayer.computeAndApplyWeightGradient(layers[layer_size-2], eta);
-        }
-        else { // when last layer is the first layer
-            lastLayer.firstLayerBatchGD(X_train, eta);
-        }
-
-        // BACKPROPAGATION starting from the penultimate layer
-        for (int i=layer_size-2; i>0; --i) {
-            layers[i].backward(layers[i-1], layers[i+1], eta);
-        }
-        // first layer gradient descent
-        if (layer_size > 1) {
-            layers[0].computeDelta(layers[1]);
-            layers[0].firstLayerBatchGD(X_train, eta);
-        }
+        // 3. subtract the weigths for all neurons ()
+        gradientDescent();
 
         if (drawer && _%5==0) {
-            drawer->drawNetwork(*this, _);
+            drawer->drawNetwork(*this, _, cost);
             drawer->handleEvents(); // keep window responsive
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
+        // printDeltaAndWeights(); // for testing
     }
 }
+
+void NeuralNetwork::gradientDescent() {
+    for (auto & layer : layers) {
+        layer.gradientDescent(eta);
+    }
+}
+
+void NeuralNetwork::setGradientDescentType(GradientDescentType gd) {
+    gradient_descent_type = gd;
+}
+
+void NeuralNetwork::setMiniBatchSize(double size) {
+    mini_batch_size = size;
+}
+
+void NeuralNetwork::printDeltaAndWeights() const {
+    for (size_t layer_idx = 0; layer_idx < layers.size(); ++layer_idx) {
+        std::cout << "Layer " << layer_idx + 1 << ":\n";
+        const auto& neurons = layers[layer_idx].getNeuronsReadOnly();
+        for (size_t neuron_idx = 0; neuron_idx < neurons.size(); ++neuron_idx) {
+            const auto& neuron = neurons[neuron_idx];
+            std::cout << "  Neuron " << neuron_idx + 1 << ":\n";
+            std::cout << "    Delta: " << neuron.delta << "\n";
+            std::cout << "    Weights: ";
+            for (const auto& weight : neuron.weights) {
+                std::cout << weight << " ";
+            }
+            std::cout << "\n    Bias: " << neuron.bias << "\n";
+        }
+        std::cout << std::endl;
+    }
+}
+
 

@@ -25,9 +25,11 @@ public:
     explicit Layer(const std::vector<double>& input_vec);
 
     void XavierInitialization(unsigned int prev_n);
+    void KaimingInitialization(unsigned int prev_n);
     const std::vector<Neuron>& getNeuronsReadOnly() const; // read-only access of neurons. const l-val refernece
     std::vector<Neuron>& getNeurons();
     double maxWeightAmongAllNeurons() const;
+    void set_z(const std::vector<double>&& new_zs);
     void set_a(const std::vector<double>&& new_as);
     unsigned long getNeuronCount() const;
     void forward(const Layer& prev_layer);
@@ -35,10 +37,14 @@ public:
     std::vector<double> getOutputVector();
     void setActivationFxn(ActivationType);
     ActivationType getActivationType() const;
-    void backward(const Layer &prev_layer, const Layer &next_layer, const double &eta);
     void computeDelta(const Layer &next_layer);
-    void computeAndApplyWeightGradient(const Layer& prev_layer, const double &eta); // prereq: delta is computed
-    void firstLayerBatchGD(const std::vector<std::vector<double>> &input_layers, const double &eta);
+    void clearDeltas();
+    void clearWeightGradients();
+    void clearBiasGradients();
+    void computeLastLayerDelta(const std::vector<double>& Y_train, LossFxn);
+    void computeWeightGradient(const Layer& prev_layer, int sample_size);
+    void computeWeightGradient(const std::vector<double>& prev_layer, int sample_size);
+    void gradientDescent(const double eta);
 
     void printWeights(); // just for testing
     void printOutput(); // just for testing

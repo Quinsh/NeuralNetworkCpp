@@ -18,14 +18,16 @@ class NeuralNetwork {
     unsigned int input_size; // this should be adjusted with adjustFirstLayer when training. 1 is default, when it hasn't been trained yet
     double eta;
     double epsilon; // (for automatic convergence
+    GradientDescentType gradient_descent_type;
+    double mini_batch_size;
 
 public:
     NeuralNetwork()
-        : input_size(1), eta(0.05), epsilon(0) {
+        : input_size(1), eta(0.05), epsilon(0), gradient_descent_type(Batch), mini_batch_size(0.1) {
     }
 
     explicit NeuralNetwork(const std::vector<int>& layer_configuration)
-        : input_size(1), eta(0.05), epsilon(0) {
+        : input_size(1), eta(0.05), epsilon(0), gradient_descent_type(Batch), mini_batch_size(0.1) {
         layers.emplace_back(1, layer_configuration[0]);
         // temporary first layer (needs to change depending on the input layer size later)
         for (int i = 1; i < layer_configuration.size(); ++i) {
@@ -43,8 +45,15 @@ public:
     double cost_compute(const std::vector<std::vector<double>> &X_train, const std::vector<std::vector<double>> &Y_train, LossFxn loss_fxn = MSE);
     double getLearningRate() const;
     void setLearningRate(const double&);
+    void clearAllDeltas();
+    void clearAllWeightBiasGradients();
     void fit(const std::vector<std::vector<double>> &X_train, const std::vector<std::vector<double>> &Y_train, int epoch, LossFxn, NetDrawer *drawer = nullptr);
-    friend void NetDrawer::drawNetwork(const NeuralNetwork&, int epoch);
+    void gradientDescent(); // prereq: gradients are alrdy calculated
+    void setGradientDescentType(GradientDescentType);
+    void setMiniBatchSize(double ratio);
+    friend void NetDrawer::drawNetwork(const NeuralNetwork&, int epoch, double cost);
+
+    void printDeltaAndWeights() const;
 
 };
 

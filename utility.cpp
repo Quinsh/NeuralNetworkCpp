@@ -55,6 +55,16 @@ double loss_CategoricalCrossEntropy(const std::vector<double> &y_hat, const std:
     return -categorical_ce;
 }
 
+int randomNumber(const int& min_val, const int& max_val) {
+    static bool seeded = false;
+    if (!seeded) {
+        std::srand(static_cast<unsigned int>(std::time(0)));
+        seeded = true;
+    }
+    // random int btw min_val and max_val (inclusive)
+    return min_val + std::rand() % (max_val - min_val + 1);
+}
+
 double lossFunctionDerivative(LossFxn loss_fxn, const double &y_hat, const double &y) { // del(C)/del(a)
     switch (loss_fxn) {
         case LossFxn::MSE:
@@ -68,16 +78,19 @@ double lossFunctionDerivative(LossFxn loss_fxn, const double &y_hat, const doubl
     }
 }
 
-double activationFxnDerivative(ActivationType activationType, const double& a) {
+double activationFxnDerivative(ActivationType activationType, const double& z) {
     switch (activationType) {
         case LINEAR:
             return 1;
         case SIGMOID:
-            return a * (1-a);
+            return sigmoid(z) * (1 - sigmoid(z));
         case RELU:
-            return a > 0 ? 1 : 0;
-        case TANH:
-            return 1-a*a;
+                return z > 0 ? 1 : 0;
+        case TANH: {
+            return 1 - std::tanh(z) * std::tanh(z);
+        }
+        case SOFTMAX:
+            return 1;
         default:
             return 0;
     }

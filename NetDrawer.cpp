@@ -5,7 +5,7 @@
 #include "NetDrawer.h"
 #include "NeuralNetwork.h"
 
-void NetDrawer::drawNetwork(const NeuralNetwork &net, int epoch) {
+void NetDrawer::drawNetwork(const NeuralNetwork &net, int epoch, double cost) {
 
     window.clear(sf::Color::Black);
 
@@ -68,10 +68,8 @@ void NetDrawer::drawNetwork(const NeuralNetwork &net, int epoch) {
                 double normalizedWeight = std::abs(weight) / maxWeightInLayer;
                 int brightness;
                 if (normalizedWeight < 0.4) {
-                    // For lower weights, use a smaller brightness range
                     brightness = static_cast<int>(normalizedWeight * 2 * 127.5);  // Scale to [0, 127.5]
                 } else {
-                    // For higher weights, scale more rapidly to full brightness
                     brightness = static_cast<int>((normalizedWeight * 255) - 127.5);  // Scale to [127.5, 255]
                 }
                 // exponential scaling
@@ -93,15 +91,20 @@ void NetDrawer::drawNetwork(const NeuralNetwork &net, int epoch) {
     sf::Font font;
     if (!font.loadFromFile("../arial.ttf")) {
     }
-    sf::Text epochText;
+    sf::Text epochText, costText;
     epochText.setFont(font);
     epochText.setString("Epoch: " + std::to_string(epoch));
-    epochText.setCharacterSize(80); // in pixels, not points!
+    epochText.setCharacterSize(80);
     epochText.setFillColor(sf::Color::White);
-    epochText.setPosition(10, 10); // Position on the screen
-
+    epochText.setPosition(10, 10);
     window.draw(epochText);
 
+    costText.setFont(font);
+    costText.setString("Cost: " + std::to_string(cost));
+    costText.setCharacterSize(60);
+    costText.setFillColor(sf::Color::Red);
+    costText.setPosition(width-0.3*width, 10);
+    window.draw(costText);
 
     window.display();
 }

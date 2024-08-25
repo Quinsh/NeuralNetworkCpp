@@ -26,7 +26,25 @@ Layer::Layer(const std::vector<double>& input_vec)
 
 void Layer::XavierInitialization(unsigned int prev_n) {
     double mean = 0;
-    double stdev = std::sqrt(1.0/prev_n);
+    double stdev = std::sqrt(1.0/(prev_n+static_cast<int>(neurons.size())));
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<> dist(mean, stdev);
+
+    for (auto& neuron : neurons) {
+        neuron.deleteWeights();
+        std::vector<double> _weights;
+        _weights.reserve(prev_n);
+        for (int j=0; j<prev_n; ++j) {
+            _weights.push_back(dist(gen));
+        }
+        neuron.initWeights(std::move(_weights));
+    }
+}
+
+void Layer::KaimingInitialization(unsigned int prev_n) {
+    double mean = 0;
+    double stdev = std::sqrt(2.0/prev_n);
     std::random_device rd;
     std::mt19937 gen(rd());
     std::normal_distribution<> dist(mean, stdev);
@@ -58,6 +76,12 @@ double Layer::maxWeightAmongAllNeurons() const {
     return maxWeight;
 }
 
+void Layer::set_z(const std::vector<double> &&new_zs) {
+    for(int i=0; i<neurons.size(); ++i) {
+        neurons[i].z = new_zs[i];
+    }
+}
+
 void Layer::set_a(const std::vector<double> &&new_as) {
     for(int i=0; i<neurons.size(); ++i) {
         neurons[i].a = new_as[i];
@@ -71,6 +95,7 @@ unsigned long Layer::getNeuronCount() const {
 void Layer::forward(const Layer& prev_layer) {
     if (activationType == SOFTMAX) {
         std::vector<double> z = compute_z_vector(prev_layer);
+        set_z(std::move(z));
         set_a(std::move(softmax(z)));
         return;
     }
@@ -129,11 +154,6 @@ ActivationType Layer::getActivationType() const {
     return activationType;
 }
 
-void Layer::backward(const Layer &prev_layer, const Layer &next_layer, const double &eta) {
-    computeDelta(next_layer);
-    computeAndApplyWeightGradient(prev_layer, eta);
-}
-
 void Layer::computeDelta(const Layer &next_layer) {
     double delCdelA = 0, activationDerivative = 0;
     int next_layer_size = next_layer.neurons.size();
@@ -143,63 +163,64 @@ void Layer::computeDelta(const Layer &next_layer) {
         for (int j=0; j<next_layer_size; ++j) {
             delCdelA += (next_layer.neurons[j].delta * next_layer.neurons[j].weights[i]);
         }
-        activationDerivative = activationFxnDerivative(activationType, neurons[i].a);
+        activationDerivative = activationFxnDerivative(activationType, neurons[i].z);
 
         neurons[i].delta = delCdelA * activationDerivative;
     }
 }
 
-void Layer::computeAndApplyWeightGradient(const Layer &prev_layer, const double &eta) {
-    double gradient = 0;
+void Layer::clearDeltas() {
+    for (auto &neuron : neurons) {
+        neuron.delta = 0;
+    }
+}
 
+void Layer::clearWeightGradients() {
+    for (auto &neuron : neurons) {
+        neuron.weightGradient.clear();
+        neuron.weightGradient.resize(neuron.weights.size());
+    }
+}
+
+void Layer::clearBiasGradients() {
+    for (auto &neuron : neurons) {
+        neuron.biasGradient = 0;
+    }
+}
+
+void Layer::computeLastLayerDelta(const std::vector<double> &Y_train, LossFxn loss_fxn) {
+    for (int i=0; i<getNeuronCount(); ++i) {
+        neurons[i].delta = 0;
+        neurons[i].delta += activationFxnDerivative(activationType, neurons[i].z);
+        neurons[i].delta *= lossFunctionDerivative(loss_fxn, neurons[i].a, Y_train[i]);
+    }
+}
+
+void Layer::computeWeightGradient(const Layer &prev_layer, int sample_size) {
     for (auto & neuron : neurons) {
-        // weights update
+        // weights gradient
         for (int j=0; j<prev_layer.neurons.size(); ++j) {
-            gradient = neuron.delta * prev_layer.neurons[j].a;
-            neuron.weights[j] -= gradient * eta;
+            neuron.weightGradient[j] += (neuron.delta * prev_layer.neurons[j].a) / sample_size;
         }
-        // bias update
-        neuron.bias -= neuron.delta * eta;
+        // bias gradient
+        neuron.biasGradient += neuron.delta / sample_size;
     }
 }
 
-/*
-// weightGradient computation for Batch Gradient Descent using all samples in one backprop
-void Layer::firstLayerBatchGD(const std::vector<std::vector<double>> &input_layers, const double &eta) {
-    int sampleSize = input_layers.size();
-    double adjustedEta = eta/sampleSize;
-
-    for (int i=0; i<sampleSize; ++i) { // do gradient descent for all samples with weaker eta.
-        auto input_layer = Layer(input_layers[i]);
-        computeAndApplyWeightGradient(input_layer, adjustedEta);
+void Layer::computeWeightGradient(const std::vector<double> &prev_layer, int sample_size) {
+    for (auto & neuron : neurons) {
+        // weights gradient
+        for (int j=0; j<prev_layer.size(); ++j) {
+            neuron.weightGradient[j] += (neuron.delta * prev_layer[j]) / sample_size;
+        }
+        // bias gradient
+        neuron.biasGradient += neuron.delta / sample_size;
     }
 }
-*/
 
-// weightGradient computation for Batch Gradient Descent using all samples in one backprop
-void Layer::firstLayerBatchGD(const std::vector<std::vector<double>> &input_layers, const double &eta) {
-    int sampleSize = input_layers.size();
-    std::vector<double> gradientSum;
-    gradientSum.resize(neurons[0].weights.size(), 0.0);
-
-    std::vector<std::vector<double>> gradientSums(neurons.size(), gradientSum);
-    std::vector<double> biasSums(neurons.size(), 0.0);
-
-    for (int i = 0; i < sampleSize; ++i) { // Accumulate gradients over all samples
-        const std::vector<double>& input_layer = input_layers[i];
-        for (int n = 0; n < neurons.size(); ++n) {
-            for (int j = 0; j < input_layer.size(); ++j) {
-                gradientSums[n][j] += neurons[n].delta * input_layer[j];
-            }
-            biasSums[n] += neurons[n].delta;
-        }
-    }
-
-    for (int n = 0; n < neurons.size(); ++n) {
-        for (int j = 0; j < neurons[n].weights.size(); ++j) {
-            neurons[n].weights[j] -= (eta / sampleSize) * gradientSums[n][j];
-        }
-        neurons[n].bias -= (eta / sampleSize) * biasSums[n];
+void Layer::gradientDescent(const double eta) {
+    for (auto& neuron : neurons) {
+        neuron.gradientDescent(eta);
     }
 }
 

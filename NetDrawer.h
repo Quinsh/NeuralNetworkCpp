@@ -19,7 +19,7 @@ public:
         window.clear(sf::Color(0, 0, 0));
     }
 
-    void drawNetwork(const NeuralNetwork&, int epoch);
+    void drawNetwork(const NeuralNetwork&, int epoch, double cost);
     void displayWindow();
     void closeWindow();
     bool isOpen() const;
