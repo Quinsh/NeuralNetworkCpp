@@ -11,7 +11,6 @@ find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 include_directories(${SFML_INCLUDE_DIR})
 
 add_executable(neuralnetwork main.cpp
-        neuralnetwork.txt
         Neuron.cpp
         Neuron.h
         Layer.cpp
