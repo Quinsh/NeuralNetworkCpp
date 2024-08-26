@@ -7,7 +7,7 @@ Implementing neural network in C++. Benchmarked way how we use Keras: you can cr
 
 I'm using element wise backpropagation (not matrix backprop). There are lots of inefficiencies in my code.
 ## References:
-
+![plan screenshot](plan.jpg)
 - [Weight/bias Xavier initialization](https://www.deeplearning.ai/ai-notes/initialization/index.html#:~:text=Initializing%20all%20the%20weights%20with,the%20same%20features%20during%20training)
 - [He Weight Initialization](https://machinelearningmastery.com/weight-initialization-for-deep-learning-neural-networks/)
 - [Backpropgation in neural network](https://builtin.com/machine-learning/backpropagation-neural-network)
