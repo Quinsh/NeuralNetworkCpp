@@ -1,5 +1,8 @@
 
 ## Implementation
+[![Watch the video](screenshot.png)](https://www.youtube.com/watch?v=Lts_m9F__BY)
+(click to see the video)  
+
 Implementing neural network in C++. Benchmarked way how we use Keras: you can create models, add layers, specify learning rate, use different activations (RELU, SIGMOID, TANH, LINEAR, SOFTMAX), use different cost functions (MSE, BinaryCrossEntropy, CategoricalCrossEntropy), and choose among Stochastic Gradient Descent, Mini-Batch, and Batch.
 
 I'm using element wise backpropagation (not matrix backprop). There are lots of inefficiencies in my code.

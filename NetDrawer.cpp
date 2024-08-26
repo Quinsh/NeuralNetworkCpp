@@ -76,8 +76,7 @@ void NetDrawer::drawNetwork(const NeuralNetwork &net, int epoch, double cost) {
                 // brightness = static_cast<int>((std::exp(normalizedWeight) - 1) / (std::exp(1) - 1) * 255);
 
 
-
-                // Draw
+                // draw line
                 sf::Vertex line[] = {
                     sf::Vertex(sf::Vector2f(NodePoints[i][j].first, NodePoints[i][j].second), sf::Color(brightness, brightness, brightness)),
                     sf::Vertex(sf::Vector2f(NodePoints[i + 1][k].first, NodePoints[i + 1][k].second), sf::Color(brightness, brightness, brightness))
@@ -101,7 +100,7 @@ void NetDrawer::drawNetwork(const NeuralNetwork &net, int epoch, double cost) {
 
     costText.setFont(font);
     costText.setString("Cost: " + std::to_string(cost));
-    costText.setCharacterSize(60);
+    costText.setCharacterSize(80);
     costText.setFillColor(sf::Color::Red);
     costText.setPosition(width-0.3*width, 10);
     window.draw(costText);

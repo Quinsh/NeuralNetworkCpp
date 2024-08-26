@@ -152,12 +152,16 @@ void NeuralNetwork::fit(const std::vector<std::vector<double>> &X_train, const s
         // logic for selecting the training set for each epoch (depending on if it's SDG, mini-batch, batch)
         // by default, batch:
         switch(gradient_descent_type) {
+            int randomIndex;
             case SGD: // randomly select one
-                int randomIndex = randomNumber(0, sample_size-1);
+            {
+                randomIndex = randomNumber(0, sample_size-1);
                 X_train_use[0] = X_train[randomIndex];
                 Y_train_use[0] = Y_train[randomIndex];
+            }
                 break;
             case MiniBatch: // randomly form a mini-batch
+            {
                 std::unordered_set<int> usedIndices;
                 for (int i=0; i<batch_size; ++i) {
                     randomIndex = randomNumber(0, sample_size-1);
@@ -170,12 +174,11 @@ void NeuralNetwork::fit(const std::vector<std::vector<double>> &X_train, const s
                         --i;
                     }
                 }
+            }
                 break;
             case Batch:
                 X_train_use = X_train;
                 Y_train_use = Y_train;
-                break;
-            default:
                 break;
         }
 

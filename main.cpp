@@ -27,9 +27,9 @@ int main() {
     }
 
     // drawing tool
-    NetDrawer drawer(1600, 800);
+    NetDrawer drawer(2220, 1200);
 
-    NeuralNetwork model;
+    // NeuralNetwork model;
     // model.addLayer(10, RELU);
     // model.addLayer(10, RELU);
     // model.addLayer(5, RELU);
@@ -99,11 +99,12 @@ int main() {
     //     {0, 0, 1}, {0, 0, 1}, {0, 0, 1}, {0, 0, 1}, {0, 0, 1}
     // };
 
+    NeuralNetwork model;
     model.addLayer(12, LINEAR);
-    model.addLayer(8, LINEAR);
-    model.addLayer(4, LINEAR);
+    model.addLayer(10, LINEAR);
+    model.addLayer(5, LINEAR);
     model.addLayer(1, LINEAR);
-    model.setLearningRate(0.0001);
+    model.setLearningRate(0.0003);
     model.fit(X_train, Y_train, 1000, MSE, &drawer);
 
     auto predictions = model.predict(X_train);
